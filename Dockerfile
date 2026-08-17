@@ -8,7 +8,7 @@ RUN mvn -q -DskipTests package
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S ledgerforge && adduser -S ledgerforge -G ledgerforge
 WORKDIR /app
-COPY --from=build /workspace/target/ledgerforge-0.1.0.jar app.jar
+COPY --from=build /workspace/target/ledgerforge-1.0.0.jar app.jar
 USER ledgerforge
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]

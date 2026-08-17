@@ -1,0 +1,4 @@
+const base=process.env.NEXT_PUBLIC_API_URL??'http://localhost:8080';
+export async function login(organizationSlug:string,email:string,password:string){const r=await fetch(`${base}/api/auth/login`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({organizationSlug,email,password})});if(!r.ok)throw new Error('Invalid credentials');return r.json()}
+export async function api<T>(token:string,path:string,options:RequestInit={}):Promise<T>{const r=await fetch(`${base}${path}`,{...options,headers:{'content-type':'application/json',authorization:`Bearer ${token}`,...options.headers}});if(!r.ok)throw new Error((await r.json().catch(()=>({error:'Request failed'}))).error??'Request failed');return r.json()}
+export function formatMoney(value:number|string,currency='USD'){return new Intl.NumberFormat('en-US',{style:'currency',currency}).format(Number(value))}

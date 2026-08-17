@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LedgerService {
@@ -16,6 +17,7 @@ public class LedgerService {
       .param("org", organizationId).param("code", code).query(UUID.class).single();
   }
 
+  @Transactional
   public UUID post(UUID organizationId, String referenceType, UUID referenceId, String description, List<PostingLine> lines) {
     LedgerInvariant.validate(lines);
     UUID transactionId = UUID.randomUUID();

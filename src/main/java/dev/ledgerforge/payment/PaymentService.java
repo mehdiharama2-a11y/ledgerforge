@@ -3,6 +3,7 @@ package dev.ledgerforge.payment;
 import dev.ledgerforge.ledger.LedgerService;
 import dev.ledgerforge.ledger.LedgerSide;
 import dev.ledgerforge.ledger.PostingLine;
+import dev.ledgerforge.outbox.OutboxService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -21,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentService {
   private final JdbcClient jdbc;
   private final LedgerService ledger;
-  public PaymentService(JdbcClient jdbc, LedgerService ledger) { this.jdbc = jdbc; this.ledger = ledger; }
+  private final OutboxService outbox;
+  public PaymentService(JdbcClient jdbc, LedgerService ledger, OutboxService outbox) { this.jdbc = jdbc; this.ledger = ledger; this.outbox=outbox; }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public PaymentView capture(UUID organizationId, String idempotencyKey, BigDecimal rawAmount, String rawCurrency) {
@@ -40,6 +42,7 @@ public class PaymentService {
     ledger.post(organizationId, "PAYMENT", paymentId, "Payment capture", List.of(
       new PostingLine(cash, LedgerSide.DEBIT, amount, currency),
       new PostingLine(payable, LedgerSide.CREDIT, amount, currency)));
+    outbox.append(organizationId,"PAYMENT",paymentId,"payment.captured",Map.of("paymentId",paymentId,"amount",amount,"currency",currency));
     return payment(organizationId, paymentId, false);
   }
 
@@ -68,6 +71,7 @@ public class PaymentService {
     ledger.post(organizationId, "REFUND", refundId, "Payment refund", List.of(
       new PostingLine(payable, LedgerSide.DEBIT, amount, payment.currency()),
       new PostingLine(cash, LedgerSide.CREDIT, amount, payment.currency())));
+    outbox.append(organizationId,"REFUND",refundId,"payment.refunded",Map.of("paymentId",paymentId,"refundId",refundId,"amount",amount,"currency",payment.currency()));
     return new RefundView(refundId, paymentId, amount, status);
   }
 
