@@ -31,7 +31,7 @@ public class ReconciliationService {
       SELECT count(DISTINCT t.id) FILTER (WHERE t.reference_type='PAYMENT') payment_transactions,
         COALESCE(sum(CASE WHEN a.code='CASH' AND e.side='DEBIT' THEN e.amount WHEN a.code='CASH' AND e.side='CREDIT' THEN -e.amount ELSE 0 END),0) ledger_amount
       FROM ledger_transactions t JOIN ledger_entries e ON e.transaction_id=t.id JOIN ledger_accounts a ON a.id=e.account_id
-      WHERE t.organization_id=:org AND (t.reference_id=:payment OR t.reference_id IN (SELECT id FROM refunds WHERE payment_id=:payment))
+      WHERE t.organization_id=:org AND (t.reference_id=:payment OR t.reference_id IN (SELECT id FROM refunds WHERE organization_id=:org AND payment_id=:payment))
       """).param("org",org).param("payment",payment.id()).query((rs,n)->new LedgerState(rs.getLong("payment_transactions"),rs.getBigDecimal("ledger_amount"))).single();
     String status=ledger.paymentTransactions()==0?"MISSING":ledger.amount().compareTo(expected)==0?"MATCHED":"MISMATCHED";
     String details=switch(status) { case "MISSING" -> "Payment has no ledger transaction"; case "MISMATCHED" -> "Expected net cash does not equal ledger net cash"; default -> "Payment and ledger agree"; };

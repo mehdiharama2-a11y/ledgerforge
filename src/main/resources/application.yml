@@ -13,4 +13,5 @@ management:
   endpoint.health.probes.enabled: true
 ledgerforge:
   jwt-secret: ${JWT_SECRET:local-ledgerforge-signing-secret-change-me-32-bytes}
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3002,http://127.0.0.1:3002}
   webhook-tolerance-seconds: ${WEBHOOK_TOLERANCE_SECONDS:300}

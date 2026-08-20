@@ -15,7 +15,7 @@ public final class WebhookSignature {
     } catch (Exception error) { throw new IllegalStateException("Unable to sign webhook",error); }
   }
   public static boolean matches(String expected,String provided) {
-    if (provided==null) return false;
-    return MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII),provided.getBytes(StandardCharsets.US_ASCII));
+    if(provided==null||provided.length()!=64)return false;
+    try{return MessageDigest.isEqual(HexFormat.of().parseHex(expected),HexFormat.of().parseHex(provided));}catch(IllegalArgumentException invalidHex){return false;}
   }
 }

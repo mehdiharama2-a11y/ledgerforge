@@ -3,6 +3,8 @@ package dev.ledgerforge.security;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -28,12 +30,12 @@ public class AuthController {
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid credentials"));
     if (!passwords.matches(request.password(), user.passwordHash())) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid credentials");
     Instant now=Instant.now();
-    JwtClaimsSet claims=JwtClaimsSet.builder().issuer("ledgerforge").issuedAt(now).expiresAt(now.plus(8, ChronoUnit.HOURS)).subject(user.id().toString())
+    JwtClaimsSet claims=JwtClaimsSet.builder().issuer("ledgerforge").issuedAt(now).expiresAt(now.plus(30, ChronoUnit.MINUTES)).subject(user.id().toString())
       .claim("organizationId",user.organizationId().toString()).claim("email",user.email()).claim("role",user.role()).build();
     String token=encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(),claims)).getTokenValue();
     return new LoginResponse(token, Map.of("email",user.email(),"role",user.role(),"organizationId",user.organizationId()));
   }
-  record LoginRequest(@NotBlank String organizationSlug,@Email String email,@NotBlank String password) {}
+  record LoginRequest(@NotBlank @Size(max=64) @Pattern(regexp="^[a-z0-9][a-z0-9-]*$") String organizationSlug,@Email @Size(max=254) String email,@NotBlank @Size(min=8,max=128) String password) {}
   record LoginResponse(String accessToken, Map<String,Object> user) {}
   record UserRecord(UUID id,UUID organizationId,String email,String passwordHash,String role) {}
 }

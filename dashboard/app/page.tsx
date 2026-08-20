@@ -1,5 +1,5 @@
 'use client';
-import {FormEvent,useCallback,useEffect,useMemo,useState} from 'react';
+import {FormEvent,useCallback,useMemo,useState} from 'react';
 import {api,formatMoney,login} from '../lib/api';
 type Payment={id:string;amount:number;refundedAmount:number;currency:string;status:string;createdAt:string};
 type Recon={paymentId:string;status:string;expectedAmount:number;ledgerAmount:number;details:string};
@@ -8,8 +8,7 @@ type History={entries:Array<{transactionId:string;referenceType:string;descripti
 export default function Page(){
  const [token,setToken]=useState('');const [user,setUser]=useState<{email:string;role:string}|null>(null);const [payments,setPayments]=useState<Payment[]>([]);const [recon,setRecon]=useState<Recon[]>([]);const [balances,setBalances]=useState<Balance[]>([]);const [selected,setSelected]=useState<Payment|null>(null);const [history,setHistory]=useState<History|null>(null);const [error,setError]=useState('');
  const load=useCallback(async(t=token)=>{if(!t)return;try{const [p,r,b]=await Promise.all([api<Payment[]>(t,'/api/reports/payments'),api<Recon[]>(t,'/api/reconciliation'),api<Balance[]>(t,'/api/reports/balances')]);setPayments(p);setRecon(r);setBalances(b);setError('')}catch(e){setError(e instanceof Error?e.message:'Unable to load')}},[token]);
- useEffect(()=>{const t=localStorage.getItem('lf-token'),u=localStorage.getItem('lf-user');if(t&&u){setToken(t);setUser(JSON.parse(u));void load(t)}},[load]);
- async function signIn(e:FormEvent<HTMLFormElement>){e.preventDefault();const d=new FormData(e.currentTarget);try{const result=await login(String(d.get('organization')),String(d.get('email')),String(d.get('password')));setToken(result.accessToken);setUser(result.user);localStorage.setItem('lf-token',result.accessToken);localStorage.setItem('lf-user',JSON.stringify(result.user));await load(result.accessToken)}catch(err){setError(err instanceof Error?err.message:'Login failed')}}
+ async function signIn(e:FormEvent<HTMLFormElement>){e.preventDefault();const d=new FormData(e.currentTarget);try{const result=await login(String(d.get('organization')),String(d.get('email')),String(d.get('password')));setToken(result.accessToken);setUser(result.user);await load(result.accessToken)}catch(err){setError(err instanceof Error?err.message:'Login failed')}}
  async function inspect(p:Payment){setSelected(p);setHistory(await api<History>(token,`/api/reports/payments/${p.id}/history`))}
  async function refund(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!selected)return;const amount=Number(new FormData(e.currentTarget).get('amount'));await api(token,`/api/payments/${selected.id}/refunds`,{method:'POST',headers:{'Idempotency-Key':`dashboard-${selected.id}-${Date.now()}`},body:JSON.stringify({amount})});await api(token,'/api/reconciliation/run',{method:'POST'});await load();await inspect({...selected,refundedAmount:selected.refundedAmount+amount});}
  const exceptions=useMemo(()=>recon.filter(r=>r.status!=='MATCHED'),[recon]);
